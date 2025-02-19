@@ -19,7 +19,7 @@ jobs:
       matrix:
         include:
           - arch: x86_64
-            sdk_url_path: https://downloads.openwrt.org/snapshots/targets/qualcommax/ipq807x
+            sdk_url_path: https://downloads.openwrt.org/snapshots/targets/x86/64
             sdk_name: -sdk-x86-64_gcc-
 
     env:
