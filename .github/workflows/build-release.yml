@@ -72,7 +72,7 @@ jobs:
           fi
           SDK_FILE="$(cat sha256sums.small | cut -d' ' -f2 | sed 's/*//g')"
           if ! sha256sum -c ./sha256sums.small >/dev/null 2>&1 ; then
-            wget -q -O "$SDK_FILE" "$SDK_URL_PATH/$SDK_FILE"
+            wget -O "$SDK_FILE" "$SDK_URL_PATH/$SDK_FILE"
             if ! sha256sum -c ./sha256sums.small >/dev/null 2>&1 ; then
               echo "::error::SDK can not be verified!"
               exit 1
