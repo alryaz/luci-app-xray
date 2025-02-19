@@ -29,7 +29,7 @@ jobs:
       CONFIG_CCACHE: y
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Prepare Cache Key
         id: cache_key
@@ -65,6 +65,7 @@ jobs:
       - name: Download and Unzip SDK
         run: |
           cd "$CACHE_DIR_SDK"
+          echo "::group::Download SDK"
           if ! ( wget -q -O - "$SDK_URL_PATH/sha256sums" | grep -- "$SDK_NAME" > sha256sums.small 2>/dev/null ) ; then
             echo "::error::Can not find ${SDK_NAME} file in sha256sums."
             exit 1
@@ -77,23 +78,28 @@ jobs:
               exit 1
             fi
           fi
+          echo "::endgroup::"
+          echo "::group::Decompress SDK"
           cd -
           tarball="$CACHE_DIR_SDK/$SDK_FILE"
           file "$tarball"
-          opts="-C '$SDK_HOME' --strip=1 -xvf '$tarball'"
-          if [[ "$tarball" == *.tar.gz || "$tarball" == *.tgz ]]; then
-              tar -z $opts
-          elif [[ "$tarball" == *.tar.bz2 || "$tarball" == *.tbz2 ]]; then
-              tar -j $opts
-          elif [[ "$tarball" == *.tar.xz || "$tarball" == *.txz ]]; then
-              tar -J $opts
-          elif [[ "$tarball" == *.tar.zst || "$tarball" == *.tzst ]]; then
-              tar --use-compress-program=unzstd $opts
-          elif [[ "$tarball" == *.tar ]]; then
-              tar $opts
-          else
-              7z x "$tarball" -so | tar -C "$SDK_HOME" -xvf - --strip=1
-          fi
+          {
+            if [[ "$tarball" == *.tar.gz || "$tarball" == *.tgz ]]; then
+              gunzip -c "$tarball"
+            elif [[ "$tarball" == *.tar.bz2 || "$tarball" == *.tbz2 ]]; then
+              bzip -c "$tarball"
+            elif [[ "$tarball" == *.tar.xz || "$tarball" == *.txz ]]; then
+              unxz "$tarball"
+            elif [[ "$tarball" == *.tar.zst || "$tarball" == *.tzst ]]; then
+              zstd -o -d "$tarball"
+            elif [[ "$tarball" == *.tar ]]; then
+              cat "$tarball"
+            else
+              7z x "$tarball" -so
+            fi
+          } | tar -C "$SDK_HOME" -xvf - --strip=1
+          echo "::endgroup::"
+          echo "::group::Cleanup SDK"
           cd "$SDK_HOME"
           test -d "dl" && rm -rf "dl" || true
           test -d "feeds" && rm -rf "feeds" || true
@@ -105,6 +111,7 @@ jobs:
           sed -i 's#git.openwrt.org/project/luci#github.com/openwrt/luci#' feeds.conf
           sed -i 's#git.openwrt.org/feed/telephony#github.com/openwrt/telephony#' feeds.conf
           cd -
+          echo "::endgroup::"
       - name: Update and Install Packages
         run: |
           cd "$SDK_HOME"
