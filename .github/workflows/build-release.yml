@@ -103,16 +103,18 @@ jobs:
           cd "$SDK_HOME"
           make defconfig
           make package/${PACKAGE_NAME}/status/{clean,compile} V=s
-          find "$SDK_HOME/bin/" -type f -name "*.ipk" -exec ls -lh {} \;
+          find "$SDK_HOME/bin/" -type f -name "*.ipk" -o -name "*.apk" -exec ls -lh {} \;
           cd -
       - name: Copy Bin Files
         run: |
-          find "$SDK_HOME/bin/" -type f -name "${PACKAGE_NAME}*.ipk" -exec cp {} "${{ github.workspace }}" \;
-          find "${{ github.workspace }}" -type f -name "*.ipk" -exec ls -lh {} \;
+          find "$SDK_HOME/bin/" -type f -name "${PACKAGE_NAME}*.ipk" -o -name "${PACKAGE_NAME}*.apk" -exec cp {} "${{ github.workspace }}" \;
+          find "${{ github.workspace }}" -type f -name "*.ipk" -o -name "*.apk" -exec ls -lh {} \;
       - name: Release and Upload Assets
         uses: softprops/action-gh-release@v1
         with:
-          files: "*.ipk"
+          files: |
+            *.ipk
+            *.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
