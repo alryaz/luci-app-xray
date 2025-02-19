@@ -18,9 +18,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - arch: qualcommax_ipq807x
+          - arch: x86_64
             sdk_url_path: https://downloads.openwrt.org/snapshots/targets/qualcommax/ipq807x
-            sdk_name: -sdk-qualcommax-ipq807x_gcc-
+            sdk_name: -sdk-x86_64_gcc-
 
     env:
       SDK_URL_PATH: ${{ matrix.sdk_url_path }}
@@ -123,8 +123,6 @@ jobs:
         run: |
           cd "$SDK_HOME"
           make defconfig
-          make tools/install
-          make toolchain/install
           make package/${PACKAGE_NAME}/status/{clean,compile} V=s
           find "$SDK_HOME/bin/" -type f -name "*.apk" -exec ls -lh {} \;
           cd -
