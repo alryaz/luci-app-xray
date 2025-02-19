@@ -91,7 +91,7 @@ jobs:
             elif [[ "$tarball" == *.tar.xz || "$tarball" == *.txz ]]; then
               unxz "$tarball"
             elif [[ "$tarball" == *.tar.zst || "$tarball" == *.tzst ]]; then
-              zstd -o -d "$tarball"
+              zstd --stdout -d "$tarball"
             elif [[ "$tarball" == *.tar ]]; then
               cat "$tarball"
             else
