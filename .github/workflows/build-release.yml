@@ -79,7 +79,20 @@ jobs:
           fi
           cd -
           file "$CACHE_DIR_SDK/$SDK_FILE"
-          tar -C "$SDK_HOME" -xzvf "$CACHE_DIR_SDK/$SDK_FILE" --strip=1
+          opts="-C '$SDK_HOME' --strip=1 -xvf '$CACHE_DIR_SDK/$SDK_FILE'"
+          if [[ "$tarball" == *.tar.gz || "$tarball" == *.tgz ]]; then
+              tar -z $opts
+          elif [[ "$tarball" == *.tar.bz2 || "$tarball" == *.tbz2 ]]; then
+              tar -j $opts
+          elif [[ "$tarball" == *.tar.xz || "$tarball" == *.txz ]]; then
+              tar -J $opts
+          elif [[ "$tarball" == *.tar.zst || "$tarball" == *.tzst ]]; then
+              tar --use-compress-program=unzstd $opts
+          elif [[ "$tarball" == *.tar ]]; then
+              tar $opts
+          else
+              7z x "$CACHE_DIR_SDK/$SDK_FILE" -so | tar -C "$SDK_HOME" -xvf - --strip=1
+          fi
           cd "$SDK_HOME"
           test -d "dl" && rm -rf "dl" || true
           test -d "feeds" && rm -rf "feeds" || true
