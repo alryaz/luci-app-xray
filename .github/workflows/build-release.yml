@@ -19,8 +19,8 @@ jobs:
       matrix:
         include:
           - arch: x86_64
-            sdk_url_path: https://downloads.openwrt.org/releases/23.05.5/targets/x86/64
-            sdk_name: -sdk-23.05.5-x86-64_
+            sdk_url_path: https://downloads.openwrt.org/snapshots/targets/x86/64
+            sdk_name: -sdk-x86-64_gcc-
 
     env:
       SDK_URL_PATH: ${{ matrix.sdk_url_path }}
@@ -52,7 +52,7 @@ jobs:
             openwrt-${{ matrix.arch }}-${{ env.PACKAGE_NAME }}-
       - name: Install Dependencies
         run: |
-          DEBIAN_FRONTEND=noninteractive sudo apt-get install -y ccache gettext libncurses5-dev xsltproc p7zip-full
+          DEBIAN_FRONTEND=noninteractive sudo apt-get install -y ccache gettext libncurses5-dev xsltproc p7zip-full zstd
       - name: Create Directories
         run: |
           CACHE_DIR_SDK="$(eval echo "$CACHE_DIR/sdk")"
@@ -71,21 +71,41 @@ jobs:
       - name: Download and Unzip SDK
         run: |
           cd "$CACHE_DIR_SDK"
+          echo "::group::Download SDK"
           if ! ( wget -q -O - "$SDK_URL_PATH/sha256sums" | grep -- "$SDK_NAME" > sha256sums.small 2>/dev/null ) ; then
             echo "::error::Can not find ${SDK_NAME} file in sha256sums."
             exit 1
           fi
           SDK_FILE="$(cat sha256sums.small | cut -d' ' -f2 | sed 's/*//g')"
           if ! sha256sum -c ./sha256sums.small >/dev/null 2>&1 ; then
-            wget -q -O "$SDK_FILE" "$SDK_URL_PATH/$SDK_FILE"
+            wget -O "$SDK_FILE" "$SDK_URL_PATH/$SDK_FILE"
             if ! sha256sum -c ./sha256sums.small >/dev/null 2>&1 ; then
               echo "::error::SDK can not be verified!"
               exit 1
             fi
           fi
+          echo "::endgroup::"
+          echo "::group::Decompress SDK"
           cd -
-          file "$CACHE_DIR_SDK/$SDK_FILE"
-          7z x "$CACHE_DIR_SDK/$SDK_FILE" -so | tar -C "$SDK_HOME" -xvf - --strip=1
+          tarball="$CACHE_DIR_SDK/$SDK_FILE"
+          file "$tarball"
+          {
+            if [[ "$tarball" == *.tar.gz || "$tarball" == *.tgz ]]; then
+              gunzip -c "$tarball"
+            elif [[ "$tarball" == *.tar.bz2 || "$tarball" == *.tbz2 ]]; then
+              bzip -c "$tarball"
+            elif [[ "$tarball" == *.tar.xz || "$tarball" == *.txz ]]; then
+              unxz "$tarball"
+            elif [[ "$tarball" == *.tar.zst || "$tarball" == *.tzst ]]; then
+              zstd --stdout -d "$tarball"
+            elif [[ "$tarball" == *.tar ]]; then
+              cat "$tarball"
+            else
+              7z x "$tarball" -so
+            fi
+          } | tar -C "$SDK_HOME" -xvf - --strip=1
+          echo "::endgroup::"
+          echo "::group::Cleanup SDK"
           cd "$SDK_HOME"
           test -d "dl" && rm -rf "dl" || true
           test -d "feeds" && rm -rf "feeds" || true
@@ -97,6 +117,7 @@ jobs:
           sed -i 's#git.openwrt.org/project/luci#github.com/openwrt/luci#' feeds.conf
           sed -i 's#git.openwrt.org/feed/telephony#github.com/openwrt/telephony#' feeds.conf
           cd -
+          echo "::endgroup::"
       - name: Update and Install Packages
         run: |
           cd "$SDK_HOME"
@@ -124,23 +145,3 @@ jobs:
             *.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  notify:
-    name: Notify Release Publish
-    runs-on: ubuntu-latest
-    env:
-      TRIGGER_URL: ${{ secrets.TRIGGER_URL }}
-      TRIGGER_TOKEN: ${{ secrets.TRIGGER_TOKEN }}
-    needs: release
-    steps:
-      - name: Notify Jenkins
-        run: |
-          if [ -z "$TRIGGER_URL" ] ; then
-            echo "::warning::No trigger url found, skip..."
-            exit 0
-          fi
-          curl -X POST \
-              -H "Content-Type: application/json; charset=utf-8" \
-              -H "Authorization: Bearer $TRIGGER_TOKEN" \
-              -d "{\"event\":\"release\",\"repository\":\"${{ github.repository }}\",\"ref\":\"${{ github.ref }}\"}" \
-              "$TRIGGER_URL" || true
