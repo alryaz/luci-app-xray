@@ -40,7 +40,7 @@ jobs:
 
       - name: Prepare Cache Key
         id: cache_key
-        run: echo "name=timestamp::$(date +"%s")" >> $GITHUB_OUTPUT
+        run: echo "timestamp=$(date +"%s")" >> $GITHUB_OUTPUT
 
       - name: Setup Cache
         uses: actions/cache@v4
