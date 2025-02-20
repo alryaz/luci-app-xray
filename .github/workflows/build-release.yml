@@ -34,8 +34,9 @@ jobs:
       - name: Generate release tag
         id: generate_tag
         run: |
-          pkg_version=$(grep -oP 'PKG_VERSION:=\K.*' package/${PACKAGE_NAME}/Makefile)
-          echo "tag=${PACKAGE_NAME}-${pkg_version}" >> $GITHUB_OUTPUT
+          pkg_version=$(grep -oP 'PKG_VERSION:=\K.*' core/Makefile)
+          pkg_release=$((grep -oP 'PKG_RELEASE:=\K.*' core/Makefile)
+          echo "tag=${PACKAGE_NAME}_${pkg_version}-${pkg_release}" >> $GITHUB_OUTPUT
 
       - name: Prepare Cache Key
         id: cache_key
