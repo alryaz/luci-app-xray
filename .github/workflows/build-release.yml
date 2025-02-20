@@ -61,10 +61,10 @@ jobs:
           CACHE_DIR_FEEDS="$(eval echo "$CACHE_DIR/feeds")"
           echo "SDK_HOME=$(mktemp -d)" >> $GITHUB_ENV
           {
-            echo "CACHE_DIR_SDK=$CACHE_DIR_SDK" >> $GITHUB_ENV
-            echo "CACHE_DIR_DL=$CACHE_DIR_DL" >> $GITHUB_ENV
-            echo "CACHE_DIR_FEEDS=$CACHE_DIR_FEEDS" >> $GITHUB_ENV
-          } | tee -a $GITHUB_OUTPUT >(xargs mkdir -p)
+            echo "CACHE_DIR_SDK=$CACHE_DIR_SDK"
+            echo "CACHE_DIR_DL=$CACHE_DIR_DL"
+            echo "CACHE_DIR_FEEDS=$CACHE_DIR_FEEDS"
+          } | tee -a $GITHUB_ENV >(xargs mkdir -p)
       - name: Download and Unzip SDK
         run: |
           cd "$CACHE_DIR_SDK"
